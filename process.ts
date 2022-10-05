@@ -71,5 +71,5 @@ const processed = schedules.map((item) => {
   }
 })
 
-const writeFileName = "processed.json"
+const writeFileName = "tvmaze-schedule-processed.json"
 await writeJSON(writeFileName, processed)
