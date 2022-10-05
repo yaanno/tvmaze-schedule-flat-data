@@ -6,7 +6,7 @@ on:
       - .github/workflows/flat.yml
   workflow_dispatch:
   schedule:
-    - cron: "0 * * * *" # Run every hour
+    - cron: "0 0 * * *" # Run every day at 00:00
 
 jobs:
   scheduled:

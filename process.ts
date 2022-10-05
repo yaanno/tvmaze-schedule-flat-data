@@ -5,24 +5,8 @@ import Schedule from "./types.ts"
 const fileName = Deno.args[0]
 
 // only for testing
-// const fileName = "data.json"
+// const fileName = "tvmaze-schedule.json"
 const schedules: Schedule.Item[] = await readJSON(fileName)
-
-/**
- * The data we are interested in:
- * Episode
- * Show
- */
-
-/**
- * Episode
- * id, url, name, season, number, airdate, airtime, airstamp
- */
-
-/**
- * Show
- * id, url, name, language, genres, premiered, schedule, rating, network, webChannel, image, summary
- */
 
 const processed = schedules.map((item) => {
   const episodeId = item.id
@@ -48,6 +32,10 @@ const processed = schedules.map((item) => {
     id: network?.id || webChannel?.id,
     url: network?.officialSite || webChannel?.officialSite,
   }
+  const country = {
+    name: network?.country?.name || webChannel?.country?.name,
+    code: network?.country?.code || webChannel?.country?.code,
+  }
   return {
     id: episodeId,
     url: episodeUrl,
@@ -67,9 +55,47 @@ const processed = schedules.map((item) => {
       channel,
       image,
       summary,
+      country,
     },
   }
 })
 
+// write main schedule file
 const writeFileName = "tvmaze-schedule-processed.json"
 await writeJSON(writeFileName, processed)
+
+// let's try something different, say episodes by genre
+// we'll use the processed data
+// it is basically a catalog for a db call
+// like when you would `await getByGenre(genre: Genre): ItemId[] {}`
+
+const itemsByGenre = new Map()
+const NO_GENRE = "Uncategorized"
+
+// let's be very explicit (and slow...) here... :)
+processed.forEach((item) => {
+  const genres = item.show.genres
+
+  if (genres.length) {
+    genres.forEach((genre) => {
+      const val = itemsByGenre.get(genre)
+      if (!val) {
+        itemsByGenre.set(genre, [item.id])
+      } else {
+        val.push(item.id)
+        itemsByGenre.set(genre, val)
+      }
+    })
+  } else {
+    const val = itemsByGenre.get(NO_GENRE)
+    if (!val) {
+      itemsByGenre.set(NO_GENRE, [item.id])
+    } else {
+      val.push(item.id)
+      itemsByGenre.set(NO_GENRE, val)
+    }
+  }
+})
+
+const genreFileName = "tvmaze-schedule-genres-processed.json"
+await writeJSON(genreFileName, Object.fromEntries(itemsByGenre))
